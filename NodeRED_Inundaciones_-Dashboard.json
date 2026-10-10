@@ -1,0 +1,336 @@
+[
+  {
+    "id": "bad94053609a470a",
+    "type": "tab",
+    "label": "Inundaciones | Dashboard sencillo",
+    "disabled": false,
+    "info": "Dashboard web sencillo usando solo nodos core de Node-RED. No requiere node-red-dashboard ni ui_group/ui_tab."
+  },
+  {
+    "id": "a421415dc50d408d",
+    "type": "mqtt-broker",
+    "name": "HiveMQ público (opcional)",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "8aeed4c3a2bd460a",
+    "type": "http in",
+    "z": "bad94053609a470a",
+    "name": "Abrir dashboard web",
+    "url": "/inundaciones",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 150,
+    "y": 100,
+    "wires": [
+      [
+        "1fa30a4269d046a6"
+      ]
+    ]
+  },
+  {
+    "id": "1fa30a4269d046a6",
+    "type": "template",
+    "z": "bad94053609a470a",
+    "name": "Dashboard visual HTML",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "<!doctype html>\n<html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Sistema anti-inundaciones</title>\n<style>\n*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef4f8;color:#142b3b}\nheader{background:linear-gradient(120deg,#082b45,#087e8b);color:white;padding:28px max(20px,calc((100% - 1100px)/2));}\n.kicker{font-size:12px;letter-spacing:2px;opacity:.8}.title{font-size:clamp(23px,4vw,34px);font-weight:800;margin:9px 0}.sub{opacity:.9}\nmain{max-width:1100px;margin:22px auto;padding:0 16px}.status{padding:14px 18px;border-radius:12px;background:#fff;box-shadow:0 4px 16px #17364a12;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}\n.pill{border-radius:30px;padding:8px 14px;background:#d8f3e4;color:#087443;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:16px}\n.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 5px 20px #17364a10;border:1px solid #e0eaf0}.label{color:#627789;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.7px}.value{font-size:32px;font-weight:800;margin:12px 0 8px;color:#123d56}.muted{font-size:13px;color:#6d8090}\n.track{height:12px;background:#e8eef2;border-radius:20px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,#20b486,#f4c95d,#e45858);transition:width .3s}\n.gauge{width:100%;height:12px;background:#eaf0f4;border-radius:20px;overflow:hidden}.recommend{margin-top:16px;background:#e2f5f5;border-left:5px solid #078b91;border-radius:12px;padding:18px;line-height:1.5}.footer{margin:18px 0 30px;color:#748796;font-size:12px;text-align:center}\nbutton{border:0;background:#087e8b;color:white;font-weight:700;padding:10px 14px;border-radius:9px;cursor:pointer}button:hover{filter:brightness(.94)}\n</style></head>\n<body>\n<header><div class=\"kicker\">IoT · AUTOMATIZACIÓN · MONITOREO</div><div class=\"title\">🌊 Sistema de detección y prevención de inundaciones</div><div class=\"sub\">ESP32 · Wokwi · MQTT · Node-RED</div></header>\n<main>\n<div class=\"status\"><div><strong>Panel de supervisión</strong><div class=\"muted\">Los datos se actualizan automáticamente cada 2 segundos.</div></div><div><span id=\"pill\" class=\"pill\">ESPERANDO DATOS</span> <button onclick=\"testData()\">Probar demo</button></div></div>\n<div class=\"grid\">\n<div class=\"card\"><div class=\"label\">Nivel estimado del agua</div><div class=\"value\"><span id=\"nivel\">--</span><span style=\"font-size:18px\"> %</span></div><div class=\"track\"><div class=\"bar\" id=\"bar\"></div></div><div class=\"muted\">Umbral de alerta: 50 % · Crítico: 80 %</div></div>\n<div class=\"card\"><div class=\"label\">Distancia ultrasónica</div><div class=\"value\"><span id=\"distancia\">--</span><span style=\"font-size:18px\"> cm</span></div><div class=\"muted\">Sensor HC-SR04</div></div>\n<div class=\"card\"><div class=\"label\">Entrada analógica</div><div class=\"value\" id=\"lluvia\">--</div><div class=\"muted\">Potenciómetro · valor ADC de 0 a 4095</div></div>\n<div class=\"card\"><div class=\"label\">Bomba / relevador</div><div class=\"value\" style=\"font-size:25px\" id=\"bomba\">--</div><div class=\"muted\">Estado reportado por el ESP32</div></div>\n<div class=\"card\"><div class=\"label\">Compuerta / servo</div><div class=\"value\" style=\"font-size:25px\" id=\"compuerta\">--</div><div class=\"muted\">Estado reportado por el ESP32</div></div>\n<div class=\"card\"><div class=\"label\">Última actualización</div><div class=\"value\" style=\"font-size:19px\" id=\"recibido\">Esperando</div><div class=\"muted\">Hora de recepción en Node-RED</div></div>\n</div>\n<div class=\"recommend\"><strong id=\"recoTitle\">Diagnóstico del sistema</strong><div id=\"reco\">Conecta el ESP32 por MQTT o pulsa “Probar demo” para ver datos ilustrativos.</div></div>\n<div class=\"footer\">Prototipo académico de monitoreo. Los datos de demostración no representan mediciones reales.</div>\n</main>\n<script>\nfunction setData(p){\n const n=Number(p.nivel)||0, estado=String(p.estado|| (n<50?'NORMAL':n<80?'ALERTA':'CRITICO')).toUpperCase();\n document.getElementById('nivel').textContent=Math.round(n);\n document.getElementById('bar').style.width=Math.max(0,Math.min(100,n))+'%';\n document.getElementById('distancia').textContent=p.distancia_cm??'--';\n document.getElementById('lluvia').textContent=p.lluvia_adc??p.lluvia??'--';\n document.getElementById('bomba').textContent=on(p.bomba)?'ACTIVADA':'APAGADA';\n document.getElementById('compuerta').textContent=on(p.compuerta)?'ACTIVA':'INACTIVA';\n document.getElementById('recibido').textContent=p.recibido||new Date().toLocaleTimeString();\n const pill=document.getElementById('pill');pill.textContent=estado;\n const colors={NORMAL:['#d8f3e4','#087443'],ALERTA:['#fff0c2','#885800'],CRITICO:['#ffe0e0','#a51d1d'],EMERGENCIA:['#eadcff','#6027a3']};\n const c=colors[estado]||['#e8edf1','#526579'];pill.style.background=c[0];pill.style.color=c[1];\n const advice={NORMAL:'Condición normal. Mantener el monitoreo activo.',ALERTA:'Nivel de alerta. Revisar las condiciones y la respuesta preventiva del ESP32.',CRITICO:'Nivel crítico. Verificar la bomba, la compuerta y la alarma del prototipo.',EMERGENCIA:'Estado de emergencia reportado. Revisar el paro y las condiciones del sistema.'};\n document.getElementById('recoTitle').textContent='Diagnóstico: '+estado+' · '+Math.round(n)+'%';\n document.getElementById('reco').textContent=advice[estado]||'Estado no reconocido. Revisa los datos recibidos.';\n}\nfunction on(v){return v===true||v===1||['1','TRUE','ON','ENCENDIDA','ACTIVADA','ABIERTA'].includes(String(v).toUpperCase())}\nasync function refresh(){try{const r=await fetch('/api/inundaciones',{cache:'no-store'});if(r.ok){const p=await r.json();if(p&&p.nivel!==undefined)setData(p)}}catch(e){}}\nfunction testData(){fetch('/api/demo',{method:'POST'}).then(refresh).catch(()=>setData({nivel:56,distancia_cm:10.8,lluvia_adc:2450,estado:'ALERTA',bomba:true,compuerta:true,recibido:new Date().toLocaleTimeString()}))}\nsetInterval(refresh,2000);refresh();\n</script></body></html>",
+    "syntax": "mustache",
+    "output": "str",
+    "x": 370,
+    "y": 100,
+    "wires": [
+      [
+        "dfd41fc8855141d0"
+      ]
+    ]
+  },
+  {
+    "id": "dfd41fc8855141d0",
+    "type": "http response",
+    "z": "bad94053609a470a",
+    "name": "Entregar dashboard",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "f257522fa1574a82",
+    "type": "http in",
+    "z": "bad94053609a470a",
+    "name": "API | estado actual",
+    "url": "/api/inundaciones",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 150,
+    "y": 200,
+    "wires": [
+      [
+        "c4b34654d4b14e7b"
+      ]
+    ]
+  },
+  {
+    "id": "c4b34654d4b14e7b",
+    "type": "function",
+    "z": "bad94053609a470a",
+    "name": "Leer último estado",
+    "func": "msg.payload = flow.get(\"estado_inundacion\") || {nivel:0,distancia_cm:\"--\",lluvia_adc:\"--\",estado:\"SIN DATOS\",bomba:false,compuerta:false,recibido:\"Esperando telemetría\"}; return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 370,
+    "y": 200,
+    "wires": [
+      [
+        "8ad9eedc45b6410b"
+      ]
+    ]
+  },
+  {
+    "id": "8ad9eedc45b6410b",
+    "type": "json",
+    "z": "bad94053609a470a",
+    "name": "Estado a JSON",
+    "property": "payload",
+    "action": "obj",
+    "pretty": false,
+    "x": 570,
+    "y": 200,
+    "wires": [
+      [
+        "540b082853d34212"
+      ]
+    ]
+  },
+  {
+    "id": "540b082853d34212",
+    "type": "http response",
+    "z": "bad94053609a470a",
+    "name": "Responder estado",
+    "statusCode": "",
+    "headers": {},
+    "x": 760,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "8b1ef1a18b01450d",
+    "type": "http in",
+    "z": "bad94053609a470a",
+    "name": "API | demo manual",
+    "url": "/api/demo",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 150,
+    "y": 280,
+    "wires": [
+      [
+        "5a4636a990a44b76"
+      ]
+    ]
+  },
+  {
+    "id": "5a4636a990a44b76",
+    "type": "function",
+    "z": "bad94053609a470a",
+    "name": "Guardar datos demo",
+    "func": "const p={nivel:56,distancia_cm:10.8,lluvia_adc:2450,estado:\"ALERTA\",bomba:true,compuerta:true,recibido:new Date().toLocaleTimeString(\"es-MX\")+\" (DEMO)\"}; flow.set(\"estado_inundacion\",p); msg.payload={ok:true}; return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 370,
+    "y": 280,
+    "wires": [
+      [
+        "1082af683ac546cb"
+      ]
+    ]
+  },
+  {
+    "id": "1082af683ac546cb",
+    "type": "http response",
+    "z": "bad94053609a470a",
+    "name": "Responder demo",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "77365749c0464fff",
+    "type": "mqtt in",
+    "z": "bad94053609a470a",
+    "name": "MQTT | ESP32 Wokwi",
+    "topic": "inundacion/benydino/telemetria",
+    "qos": "0",
+    "datatype": "utf8",
+    "broker": "a421415dc50d408d",
+    "nl": false,
+    "rap": false,
+    "inputs": 0,
+    "x": 150,
+    "y": 400,
+    "wires": [
+      [
+        "922f7974ed4d40d0"
+      ]
+    ]
+  },
+  {
+    "id": "922f7974ed4d40d0",
+    "type": "json",
+    "z": "bad94053609a470a",
+    "name": "MQTT | parsear JSON",
+    "property": "payload",
+    "action": "",
+    "pretty": false,
+    "x": 360,
+    "y": 400,
+    "wires": [
+      [
+        "59ef64b5ee7644f4"
+      ]
+    ]
+  },
+  {
+    "id": "59ef64b5ee7644f4",
+    "type": "function",
+    "z": "bad94053609a470a",
+    "name": "MQTT | normalizar y guardar",
+    "func": "const p=msg.payload;if(!p||typeof p!==\"object\")return null;const n=Number(p.nivel),d=Number(p.distancia_cm),r=Number(p.lluvia);if(![n,d,r].every(Number.isFinite)){node.warn(\"Payload MQTT sin nivel, distancia_cm o lluvia\");return null;}const on=v=>v===true||v===1||[\"1\",\"TRUE\",\"ON\",\"ENCENDIDA\",\"ACTIVADA\",\"ABIERTA\"].includes(String(v).toUpperCase());let e=String(p.estado||(n<50?\"NORMAL\":n<80?\"ALERTA\":\"CRITICO\")).toUpperCase();if(e===\"CRÍTICO\")e=\"CRITICO\";if(![\"NORMAL\",\"ALERTA\",\"CRITICO\",\"EMERGENCIA\"].includes(e))e=\"DESCONOCIDO\";const s={nivel:Math.max(0,Math.min(100,Math.round(n))),distancia_cm:Number(d.toFixed(2)),lluvia_adc:Math.max(0,Math.min(4095,Math.round(r))),estado:e,bomba:on(p.bomba),compuerta:on(p.compuerta),recibido:new Date().toLocaleTimeString(\"es-MX\")};flow.set(\"estado_inundacion\",s);msg.payload=s;return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 600,
+    "y": 400,
+    "wires": [
+      [
+        "4888fb2fd2ed404f"
+      ]
+    ]
+  },
+  {
+    "id": "4888fb2fd2ed404f",
+    "type": "debug",
+    "z": "bad94053609a470a",
+    "name": "MQTT | telemetría procesada",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 830,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "3f1c67c1d5f94ba4",
+    "type": "inject",
+    "z": "bad94053609a470a",
+    "name": "PRUEBA | cargar datos de ejemplo",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "topic",
+        "vt": "str"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "demo",
+    "payload": "{\"nivel\":56,\"distancia_cm\":10.8,\"lluvia\":2450,\"estado\":\"ALERTA\",\"bomba\":true,\"compuerta\":true}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 500,
+    "wires": [
+      [
+        "98eac2da6c0b4267"
+      ]
+    ]
+  },
+  {
+    "id": "98eac2da6c0b4267",
+    "type": "function",
+    "z": "bad94053609a470a",
+    "name": "Guardar prueba en dashboard",
+    "func": "const p=msg.payload;flow.set(\"estado_inundacion\",{nivel:Number(p.nivel),distancia_cm:Number(p.distancia_cm),lluvia_adc:Number(p.lluvia),estado:p.estado,bomba:p.bomba,compuerta:p.compuerta,recibido:new Date().toLocaleTimeString(\"es-MX\")+\" (DEMO)\"});return msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 500,
+    "wires": [
+      [
+        "1d9412b8a6864387"
+      ]
+    ]
+  },
+  {
+    "id": "1d9412b8a6864387",
+    "type": "debug",
+    "z": "bad94053609a470a",
+    "name": "Confirmación prueba",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 650,
+    "y": 500,
+    "wires": []
+  },
+  {
+    "id": "2284f9d58ac5401f",
+    "type": "comment",
+    "z": "bad94053609a470a",
+    "name": "Instrucciones",
+    "info": "Este flujo evita ui_tab/ui_group/ui_gauge/ui_text para no depender del Dashboard clásico. Abre http://127.0.0.1:1880/inundaciones. Usa solo nodos core más un broker MQTT. El botón Probar demo escribe datos ilustrativos. MQTT opcional: broker.hivemq.com:1883, topic inundacion/benydino/telemetria; espera JSON con nivel, distancia_cm, lluvia y opcionalmente estado, bomba, compuerta.",
+    "x": 150,
+    "y": 570,
+    "wires": []
+  }
+]
